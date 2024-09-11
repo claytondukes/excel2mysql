@@ -2,16 +2,18 @@
 
 ## Overview
 
-I am by no means a Python Guru, but the code did work for me in converting a 50k line excel file to MySQL.
+I am by no means a Python Guru, but the code did work for me in converting a 50k line Excel file to MySQL.
 
 The script converts data from an Excel file into MySQL-compatible `INSERT` statements. Optionally, it can also generate a `CREATE TABLE` statement based on the data's structure.
 
 The script supports renaming columns to ensure they comply with SQL naming conventions (no spaces or special characters). It also handles escaping problematic characters, such as single quotes and backslashes, to prevent SQL errors during execution.
 
+The script automatically adds an `id` column with `AUTO_INCREMENT` when generating a `CREATE TABLE` statement. This `id` column serves as the primary key in the resulting SQL table.
+
 ## Features
 
 - Converts Excel file data into SQL `INSERT` statements.
-- Optionally generates a `CREATE TABLE` statement based on the Excel file's column structure.
+- Optionally generates a `CREATE TABLE` statement with an auto-incrementing `id` column as the primary key.
 - Escapes special characters like single quotes and backslashes to ensure valid SQL queries.
 - Renames columns by removing or replacing spaces and special characters.
 - Supports various data types, including `TEXT`, `INT`, `FLOAT`, `BOOLEAN`, and `DATETIME`.
@@ -41,7 +43,7 @@ python script.py <input_file> <output_file> <table_name> [--create_table <table_
 - **input_file**: Path to the Excel file to convert.
 - **output_file**: Path to the SQL file where the `INSERT` statements will be written.
 - **table_name**: Name of the MySQL table where the data will be inserted.
-- **--create_table** (optional): Path to the SQL file where the `CREATE TABLE` statement will be written.
+- **--create_table** (optional): Path to the SQL file where the `CREATE TABLE` statement (with an `id` column) will be written.
 
 ### Example Commands
 
@@ -52,12 +54,12 @@ python script.py <input_file> <output_file> <table_name> [--create_table <table_
 
    This will convert the `data.xlsx` file into SQL `INSERT` statements and save them in `data.sql` for the table named `my_table`.
 
-2. **Generate both `CREATE TABLE` and `INSERT` statements**:
+2. **Generate both `CREATE TABLE` (with `id` column) and `INSERT` statements**:
    ```bash
    python script.py data.xlsx data.sql my_table --create_table create_table.sql
    ```
 
-   This command will create both `CREATE TABLE` and `INSERT` SQL statements. The `CREATE TABLE` statement will be saved in `create_table.sql`, while the `INSERT` statements will be in `data.sql`.
+   This command will create both `CREATE TABLE` (with the `id` column) and `INSERT` SQL statements. The `CREATE TABLE` statement will be saved in `create_table.sql`, while the `INSERT` statements will be in `data.sql`.
 
 ## How It Works
 
@@ -70,8 +72,8 @@ python script.py <input_file> <output_file> <table_name> [--create_table <table_
 3. **Generate `INSERT` Statements**: 
    The script generates a SQL `INSERT` statement for each row of data. It escapes special characters like single quotes (`'`) and backslashes (`\`) to ensure the SQL statements are valid.
 
-4. **Optionally Generate `CREATE TABLE`**: 
-   If the `--create_table` option is provided, the script analyzes the data types in the Excel file and generates a `CREATE TABLE` SQL statement. The data types are mapped to MySQL types like `TEXT`, `INT`, `FLOAT`, and `DATETIME`.
+4. **Optionally Generate `CREATE TABLE` (with `id` column)**: 
+   If the `--create_table` option is provided, the script analyzes the data types in the Excel file and generates a `CREATE TABLE` SQL statement. The script will automatically add an `id` column with `AUTO_INCREMENT` as the primary key. The data types are mapped to MySQL types like `TEXT`, `INT`, `FLOAT`, and `DATETIME`.
 
 ### Example SQL Outputs
 
@@ -79,50 +81,21 @@ python script.py <input_file> <output_file> <table_name> [--create_table <table_
 
 ```sql
 CREATE TABLE IF NOT EXISTS `my_table` (
+    `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     `Company_Name` TEXT,
     `Acquisition_Period` TEXT,
     `Number_of_Columns` INT,
     `Category` TEXT,
     `Year_Founded` INT,
     `Revenue_Millions` FLOAT
-);
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 ```
 
 #### `INSERT` Statement Example:
 
 ```sql
-INSERT INTO `my_table` (`Company_Name`, `Acquisition_Period`, `Number_of_Columns`, `Category`, `Year_Founded`, `Revenue_Millions`)
-VALUES ('Example Corp', '2024 Q1', 12, 'Technology', 2005, 45.25);
+INSERT INTO `my_table` (`id`, `Company_Name`, `Acquisition_Period`, `Number_of_Columns`, `Category`, `Year_Founded`, `Revenue_Millions`)
+VALUES (NULL, 'Example Corp', '2024 Q1', 12, 'Technology', 2005, 45.25);
 ```
 
-## Handling Special Characters
-
-The script automatically escapes single quotes and backslashes in text fields to prevent SQL syntax errors. For example:
-
-- Data like `"It's a good deal"` becomes `"It''s a good deal"` in the SQL output to escape the single quote.
-
-## Customization
-
-If your data contains specific types or needs special handling, you can adjust the default SQL types in the `sql_types` dictionary. For example:
-
-```python
-sql_types = {
-    'object': 'TEXT',
-    'int64': 'INT',
-    'float64': 'FLOAT',
-    'bool': 'BOOLEAN',
-    'datetime64[ns]': 'DATETIME'
-}
-```
-
-This dictionary maps Python data types to MySQL data types. You can customize this mapping based on your database schema.
-
-## Limitations
-
-- The script is designed to work with MySQL and may need adjustments for other databases (e.g., PostgreSQL or SQLite).
-- The default SQL types can be expanded based on your specific database schema needs.
-
-## License
-
-This project is licensed under the GNU License.
-
+In this example, the `id` column is auto-generated by MySQL when a new record is inserted.
