@@ -13,13 +13,16 @@ def excel_to_sql(input_excel, output_sql, table_name, table_sql=None):
         # If not creating a table, just rename the columns
         renamed_columns = rename_columns(df.columns)
 
+    # Add `id` column to renamed columns
+    renamed_columns_with_id = ['id'] + renamed_columns
+
     # Open the output SQL file to append insert statements
     with open(output_sql, 'w') as sql_file:
         for index, row in df.iterrows():
             # Prepare the SQL insert statement using the renamed columns list
-            columns = ', '.join([f'`{col}`' for col in renamed_columns])
+            columns = ', '.join([f'`{col}`' for col in renamed_columns_with_id])
             values = ', '.join([f"'{str(val).replace('\\', '\\\\').replace('\'', '\'\'')}'" if pd.notna(val) else 'NULL' for val in row])
-            insert_statement = f"INSERT INTO `{table_name}` ({columns}) VALUES ({values});\n"
+            insert_statement = f"INSERT INTO `{table_name}` ({columns}) VALUES (NULL, {values});\n"  # NULL for auto-increment id
             
             # Write the SQL statement to the file
             sql_file.write(insert_statement)
@@ -40,13 +43,13 @@ def create_table_sql(df, table_sql, table_name):
     renamed_columns = rename_columns(df.columns)
 
     # Map the column types from the dataframe to MySQL types
-    column_definitions = []
+    column_definitions = ['`id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY']  # Add the `id` column definition
     for original_col, renamed_col in zip(df.columns, renamed_columns):
         mysql_type = sql_types.get(str(df[original_col].dtype), 'TEXT')  # Default to TEXT for unknown types
         column_definitions.append(f'`{renamed_col}` {mysql_type}')
     
     create_table_statement = f"CREATE TABLE IF NOT EXISTS `{table_name}` (\n" + \
-                             ",\n".join(column_definitions) + "\n);\n"
+                             ",\n".join(column_definitions) + "\n) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;\n"
 
     # Write the CREATE TABLE statement to the table SQL file
     with open(table_sql, 'w') as table_file:
